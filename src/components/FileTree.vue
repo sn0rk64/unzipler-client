@@ -5,22 +5,9 @@
                 class="mx-auto"
                 width="100%"
             >
-<!--                <v-sheet class="pa-4 primary lighten-2">-->
-<!--                    <v-text-field-->
-<!--                        v-model="search"-->
-<!--                        label="Search"-->
-<!--                        dark-->
-<!--                        flat-->
-<!--                        solo-inverted-->
-<!--                        hide-details-->
-<!--                        clearable-->
-<!--                        clear-icon="mdi-close-circle-outline"-->
-<!--                    ></v-text-field>-->
-<!--                </v-sheet>-->
                 <v-card-text v-if="unarchivedFiles.length > 0">
                     <v-treeview
                         :items="unarchivedFiles"
-                        :search="search"
                         open-on-click
                         open-all
                     >
@@ -30,6 +17,11 @@
                             </v-icon>
                             <v-icon v-else>
                                 {{ fileTypes[item.file] }}
+                            </v-icon>
+                        </template>
+                        <template v-slot:append="{ item, open }">
+                            <v-icon v-if="item.file" class="download-btn" @click="downloadFile(item)">
+                                {{ 'mdi-cloud-download' }}
                             </v-icon>
                         </template>
                     </v-treeview>
@@ -45,6 +37,21 @@
         props: {
             unarchivedFiles: Array,
         },
+        methods: {
+            downloadFile(item) {
+                fetch(item.to).then(function(t) {
+                    return t.blob().then((b)=>{
+                            let a = document.createElement("a");
+                            a.href = URL.createObjectURL(b);
+                            a.setAttribute("download", item.name);
+                            a.click();
+                        }
+                    )
+                }).catch((error) => {
+                    this.$toast.error(error)
+                });
+            }
+        },
         data: () => ({
             fileTypes: {
                 html: 'mdi-language-html5',
@@ -57,11 +64,12 @@
                 txt: 'mdi-file-document-outline',
                 xls: 'mdi-file-excel',
             },
-            search: null,
         }),
     }
 </script>
 
 <style scoped>
-
+    .download-btn:hover {
+        color: #03A9F4;
+    }
 </style>

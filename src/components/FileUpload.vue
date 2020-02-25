@@ -2,7 +2,7 @@
     <v-container class="text-center uzp__container">
         <v-row no-gutters>
             <p class="uzp__headline">Fast.Real-time.Secure.</p>
-            <p class="uzp__subhead">Supported types: .zip .rar</p>
+            <p class="uzp__subhead">Supported types: .zip</p>
             <form
                 class="box has-advanced-upload"
                 method="post"
@@ -31,7 +31,6 @@
 <script>
     import axios from 'axios'
     import helperMixin from "../mixins/helperMixin";
-    import FileTree from "./FileTree";
 
     export default {
         name: 'FileUpload',
@@ -39,7 +38,6 @@
         data: () => ({
             file: null,
             fileTree: {},
-            normalizedFileTree: {},
             allowedFileTypes: [
                 'application/zip',
                 'application/x-zip-compressed',
@@ -70,7 +68,8 @@
                         tmp.children.push({
                             id: counter,
                             name: fname,
-                            file: finfo.ext
+                            file: finfo.ext,
+                            to: finfo.path
                         })
                     }
 
@@ -79,18 +78,31 @@
                 }
             },
             normalizeFileTree(fileTree) {
-                let normalized = {
-                    id: 0,
-                    name: fileTree.name,
-                    children: []
+                let normalized = []
+
+                let counter = 0
+
+                if (fileTree.files !== null) {
+                    for (let [fname, finfo] of Object.entries(fileTree.files)) {
+                        counter++
+
+                        normalized.push({
+                            id: counter,
+                            name: fname,
+                            file: finfo.ext,
+                            to: finfo.path
+                        })
+                    }
                 }
 
-                this.normalizeChildren(fileTree.children, normalized.children, 1)
+                this.normalizeChildren(fileTree.children, normalized, counter)
 
-                this.normalizedFileTree = normalized
-                this.$emit('set-unarchived-files', [this.normalizedFileTree])
+                return normalized
             },
             uploadFile(file) {
+                this.file = {}
+                this.normalizedFileTree = {}
+
                 const data = new FormData()
 
                 data.append('archive', file)
@@ -98,11 +110,11 @@
                 axios.post('http://localhost:8080/handleArchive', data)
                     .then((response) => {
                         this.fileTree = response.data
-                        this.normalizeFileTree(this.fileTree)
+                        let normalized = this.normalizeFileTree(this.fileTree)
+                        this.$emit('set-unarchived-files', normalized)
                     })
                     .catch((error) => {
-                    // eslint-disable-next-line console.log,no-console
-                    console.log(error)
+                        this.$toast.error(error)
                 })
             },
             handleFile(e) {
